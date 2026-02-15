@@ -1,0 +1,103 @@
+#include <stdio.h>
+#include <windows.h>  // For Sleep and clearing screen on Windows
+
+
+// dt means change in time
+
+// class for the ball
+typedef struct {
+    float x;
+    float y;
+    float velocityx;
+    float velocityy; 
+    float mass;
+    float accelerationy; // acceleration in the y direction only because this will allow us to change the gravity
+} Ball;
+
+#define WIDTH  40 // width of the box in which the ball shall be contained in
+#define HEIGHT 20 // hight of the box in which the ball shall be contained in
+#define GRAVITY -9.8
+
+// updates the balls positions based on the velocity and dt
+void update(Ball *b, float dt) {
+
+    // apply gravity
+    b->velocityy += b->accelerationy * dt;
+
+    // update x and y position
+    b->x += b->velocityx * dt;
+    b->y += b->velocityy * dt;
+}
+
+
+
+
+// how it bounces off the walls
+void check_collision(Ball *b) {
+
+    if (b->x <= 0 || b->x >= WIDTH) {
+        b->velocityx = -b->velocityx;
+    }
+
+    if (b->y <= 0 || b->y >= HEIGHT) {
+        b->velocityy = -b->velocityy;
+    }
+}
+
+
+
+// draw the ball in the terminal
+void draw(Ball *b) {
+    system("cls");
+
+    for (int y = HEIGHT; y >= 0; y--) {
+        for (int x = 0; x <= WIDTH; x++) {
+            if ((int)b->x == x && (int)b->y == y){
+                printf("O"); // ball
+            }
+            else if (y == 0) {
+                printf("-"); // floor
+            }
+            else if (x == 0 || x == WIDTH) {
+                printf("|"); // walls
+            }
+            else {
+                printf(" "); // empty space
+            }
+        }
+        printf("\n");
+    }
+}
+
+
+int main() {
+    printf("Program started\n");
+
+    Ball ball = {5, 5, 0, 0, 1, GRAVITY};
+
+
+    // this section is for getting the users input
+    printf("Enter initial velocityx: ");
+    scanf("%f", &ball.velocityx);
+
+    printf("Enter initial velocityy: ");
+    scanf("%f", &ball.velocityy);
+
+    printf("Enter mass: ");
+    scanf("%f", &ball.mass);
+
+    float dt = 0.1;
+
+    for (int i = 0; i < 100; i++) {
+
+        update(&ball, dt);
+        check_collision(&ball);
+        draw(&ball);
+        Sleep(120);
+        //printf("Time: %d | x: %.2f y: %.2f\n", i, ball.x, ball.y);
+    }
+
+    return 0;
+}
+
+
