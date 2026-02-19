@@ -1,5 +1,6 @@
+// Mohammads version, without windows.h and attempting to add Collision and OpenGL
 #include <stdio.h>
-#include <windows.h>  // For Sleep and clearing screen on Windows
+// #include <windows.h>  // For Sleep and clearing screen on Windows
 
 
 // dt means change in time
@@ -48,7 +49,7 @@ void check_collision(Ball *b) {
 
 // draw the ball in the terminal
 void draw(Ball *b) {
-    system("cls");
+//    system("cls");
 
     for (int y = HEIGHT; y >= 0; y--) {
         for (int x = 0; x <= WIDTH; x++) {
@@ -93,11 +94,9 @@ int main() {
         update(&ball, dt);
         check_collision(&ball);
         draw(&ball);
-        Sleep(120);
+	//Sleep(120);
         //printf("Time: %d | x: %.2f y: %.2f\n", i, ball.x, ball.y);
     }
-
     return 0;
 }
-
 
