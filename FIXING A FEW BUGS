@@ -1,0 +1,30 @@
+// how it bounces off the walls
+void check_collision(Ball *b) {
+
+    // LEFT AND RIGHT WALLS (X direction)
+    if (b->x <= 0) {
+        b->x = 0;  // clamp
+        b->velocityx = -b->velocityx;
+    }
+
+    if (b->x >= WIDTH) {
+        b->x = WIDTH;  // clamp
+        b->velocityx = -b->velocityx;
+    }
+
+    //FLOOR
+    if (b->y <= 0) {
+        b->y = 0;
+        b->velocityy = -b->velocityy * b->restitution;
+
+        if (fabs(b->velocityy) < 0.1) { //stops the jittering so when it does tiny bounces it sets to 0
+            b->velocityy = 0;
+        }
+    }
+
+    // CEILING
+    if (b->y >= HEIGHT) {
+        b->y = HEIGHT;  // clamp
+        b->velocityy = -b->velocityy;
+    }
+}
