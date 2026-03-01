@@ -1,0 +1,118 @@
+// source https://antongerdelan.net/opengl/hellotriangle.html
+#include <stdio.h>
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
+
+int main(void) {
+	// INITIALIZATION PROCESS
+
+	printf("hello world!\n");
+	// start context with glfw lib
+	if ( !glfwInit()) {
+		fprintf( stderr, "ERROR: could not start GLFW3. \n");
+		return 1;
+	}
+	
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
+	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
+	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+
+	GLFWwindow* window = glfwCreateWindow( 800, 600, "Hello Triangle", NULL, NULL);
+
+	if (!window) {
+		fprintf( stderr, "ERROR: Could not open window with GLFW3.\n" );
+		glfwTerminate();
+		return 1;
+	}
+	glfwMakeContextCurrent(window);
+
+
+	int version_glad = gladLoadGL (glfwGetProcAddress);
+
+	if (version_glad == 0) {
+		fprintf( stderr, "ERROR: Failed to initialize OpenGL context.\n" );
+		return 1;
+	}
+	printf("Loaded OPenGL %i. %i\n", GLAD_VERSION_MAJOR( version_glad ), GLAD_VERSION_MINOR( version_glad) );
+
+
+	printf( "Renderer: %s.\n", glGetString( GL_RENDERER ) );
+	printf( "OpenGL version supported %s.\n", glGetString( GL_VERSION ) );
+	// We do our stuff here
+	
+	// Points of a triangle
+	float points[] = {
+		0.0f,  0.5f,  0.0f, // x,y,z of first point.
+		0.5f, -0.5f,  0.0f, // x,y,z of second point.
+		-0.5f, -0.5f,  0.0f  // x,y,z of third point.
+	};
+
+	// Vertex Buffer Object (vbo)
+	
+	GLuint vbo = 0;
+	glGenBuffers(1, &vbo);
+	glBindBuffer( GL_ARRAY_BUFFER, vbo);
+	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW );
+	
+	// vertext array object (vao)
+	GLuint vao = 0;
+	glGenVertexArrays( 1, &vao );
+	glBindVertexArray( vao );
+	glEnableVertexAttribArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, vbo );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
+
+	// shadering(colour the triangle)
+	const char* vertex_shader =
+	"#version 410 core\n"
+	"in vec3 vp;"
+	"void main() {"
+	"  gl_Position = vec4( vp, 1.0 );"
+	"}";
+	const char* fragment_shader =
+	"#version 410 core\n"
+	"out vec4 frag_colour;"
+	"void main() {"
+	"  frag_colour = vec4( 0.5, 0.0, 0.5, 1.0 );"
+	"}";
+
+	GLuint vs = glCreateShader( GL_VERTEX_SHADER);
+	glShaderSource ( vs, 1, &vertex_shader, NULL);
+	glCompileShader( vs);
+	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource( fs, 1, &fragment_shader, NULL);
+	glCompileShader(fs);
+
+	// create an empty gpu executable program
+	GLuint shader_program = glCreateProgram();
+	glAttachShader(shader_program, fs);
+	glAttachShader(shader_program, vs);
+	glLinkProgram(shader_program);
+
+	// draw in a loop
+	
+	while ( !glfwWindowShouldClose( window ) ) {
+		//update window events.
+		
+		glfwPollEvents();
+
+		// Wipe the drawing surface clear
+
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Put the shader program, and the VAO, in focus of OpenGL's state machine
+		glUseProgram(shader_program);
+		glBindVertexArray(vao);
+
+		// Draw points 0-3 from the currently bound VAO with the current in-use shader.
+		
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glfwSwapBuffers(window);
+	}
+
+	// Close OpenGL window, context, and any other GLFW resources.
+	glfwTerminate();
+	return 0;
+}
