@@ -68,7 +68,7 @@ int main(void) {
 	}
 
 	glViewport(0, 0, 800, 600);
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	printf("Loaded OPenGL %i. %i\n", GLAD_VERSION_MAJOR( version_glad ), GLAD_VERSION_MINOR( version_glad) );
 
 
@@ -128,14 +128,14 @@ int main(void) {
 		// Wipe the drawing surface clear
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+		
 		// Put the shader program, and the VAO, in focus of OpenGL's state machine
 		glUseProgram(shader_program);
 		glBindVertexArray(vao);
 
 		// Draw points 0-3 from the currently bound VAO with the current in-use shader.
-		
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glPointSize(10.0f);
+		glDrawArrays(GL_POINTS, 0, 6);
 
 		glfwSwapBuffers(window);
 	}
