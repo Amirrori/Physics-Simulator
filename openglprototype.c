@@ -1,7 +1,39 @@
 // source https://antongerdelan.net/opengl/hellotriangle.html
+// source https://moderncprogramming.com/loading-a-glsl-shader-from-file-in-opengl-using-pure-c/
 #include <stdio.h>
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+// loading shaders
+
+char* get_shader_content(const char* fileName)
+{
+	FILE *fp;
+	long size = 0;
+	char* shaderContent;
+
+	// Read file shize
+	fp = fopen(fileName, "rb");
+	if(fp==NULL) {
+		return "";
+	}
+
+	fseek(fp, 0L, SEEK_END);
+	size = ftell(fp) + 1;
+	fclose(fp);
+
+	// Read file for content
+	//
+	fp = fopen(fileName, "r");
+	shaderContent = memset(malloc(size), '\0', size);
+	fread(shaderContent, 1, size-1, fp);
+	fclose(fp);
+
+	return shaderContent;
+}
 
 int main(void) {
 	// INITIALIZATION PROCESS
@@ -34,6 +66,9 @@ int main(void) {
 		fprintf( stderr, "ERROR: Failed to initialize OpenGL context.\n" );
 		return 1;
 	}
+
+	glViewport(0, 0, 800, 600);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	printf("Loaded OPenGL %i. %i\n", GLAD_VERSION_MAJOR( version_glad ), GLAD_VERSION_MINOR( version_glad) );
 
 
@@ -43,9 +78,10 @@ int main(void) {
 	
 	// Points of a triangle
 	float points[] = {
-		0.0f,  0.5f,  0.0f, // x,y,z of first point.
+		-0.5f,  0.5f,  0.0f, // x,y,z of first point.
 		0.5f, -0.5f,  0.0f, // x,y,z of second point.
 		-0.5f, -0.5f,  0.0f  // x,y,z of third point.
+		
 	};
 
 	// Vertex Buffer Object (vbo)
@@ -63,19 +99,9 @@ int main(void) {
 	glBindBuffer( GL_ARRAY_BUFFER, vbo );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
 
-	// shadering(colour the triangle)
-	const char* vertex_shader =
-	"#version 410 core\n"
-	"in vec3 vp;"
-	"void main() {"
-	"  gl_Position = vec4( vp, 1.0 );"
-	"}";
-	const char* fragment_shader =
-	"#version 410 core\n"
-	"out vec4 frag_colour;"
-	"void main() {"
-	"  frag_colour = vec4( 0.5, 0.0, 0.5, 1.0 );"
-	"}";
+	// shadering(colour the triangle) moved to imports
+	const char* vertex_shader = get_shader_content("trig.vert");
+	const char* fragment_shader = get_shader_content("trig.frag");
 
 	GLuint vs = glCreateShader( GL_VERTEX_SHADER);
 	glShaderSource ( vs, 1, &vertex_shader, NULL);
