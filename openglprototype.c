@@ -80,10 +80,10 @@ int main(void) {
 	float points[] = {
 		-0.5f,  0.5f,  0.0f, // x,y,z of first point.
 		0.5f, -0.5f,  0.0f, // x,y,z of second point.
-		-0.5f, -0.5f,  0.0f,  // x,y,z of third point.
-		-0.5f, 0.5f, 0.0f, // forth
-		0.5f, 0.5f, 0.0f, // fith
-		0.5f, -0.5f, 0.0f // sixth
+		-0.5f, -0.5f,  0.0f  // x,y,z of third point.
+//		-0.5f, 0.5f, 0.0f, // forth
+//		0.5f, 0.5f, 0.0f, // fith
+//		0.5f, -0.5f, 0.0f // sixth
 	};
 
 	// Vertex Buffer Object (vbo)
@@ -91,7 +91,7 @@ int main(void) {
 	GLuint vbo = 0;
 	glGenBuffers(1, &vbo);
 	glBindBuffer( GL_ARRAY_BUFFER, vbo);
-	glBufferData( GL_ARRAY_BUFFER, 36 * sizeof(float), points, GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW );
 	
 	// vertext array object (vao)
 	GLuint vao = 0;
@@ -134,9 +134,10 @@ int main(void) {
 		glBindVertexArray(vao);
 
 		// Draw points 0-3 from the currently bound VAO with the current in-use shader.
-		glPointSize(10.0f);
-		glDrawArrays(GL_POINTS, 0, 6);
+//		glPointSize(10.0f);
+//		glDrawArrays(GL_POINTS, 0, 6);
 
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 		glfwSwapBuffers(window);
 	}
 
