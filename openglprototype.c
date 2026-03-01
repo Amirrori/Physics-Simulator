@@ -85,15 +85,28 @@ int main(void) {
 //		0.5f, 0.5f, 0.0f, // fith
 //		0.5f, -0.5f, 0.0f // sixth
 	};
-
+	float points2[] = {
+		-0.5f, 0.5f, 0.0f, // first
+		0.5f, 0.5f, 0.0f, // second
+		0.5f, -0.5f, 0.0f // third
+	};
 	// Vertex Buffer Object (vbo)
 	
 	GLuint vbo = 0;
 	glGenBuffers(1, &vbo);
 	glBindBuffer( GL_ARRAY_BUFFER, vbo);
 	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW );
+
+	GLuint vbo2 = 0;
+
+	glGenBuffers(1, &vbo2);
+	glBindBuffer( GL_ARRAY_BUFFER, vbo2);
+	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points2, GL_STATIC_DRAW );
+
+
+
 	
-	// vertext array object (vao)
+	// vertex array object (vao)
 	GLuint vao = 0;
 	glGenVertexArrays( 1, &vao );
 	glBindVertexArray( vao );
@@ -101,9 +114,20 @@ int main(void) {
 	glBindBuffer( GL_ARRAY_BUFFER, vbo );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
 
+	// second shape?
+	GLuint vao2 = 0;
+	
+	glGenVertexArrays( 1, &vao2 );
+	glBindVertexArray( vao2 );
+	glEnableVertexAttribArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, vbo2 );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
+
 	// shadering(colour the triangle) moved to imports
 	const char* vertex_shader = get_shader_content("trig.vert");
 	const char* fragment_shader = get_shader_content("trig.frag");
+	
+	const char* fragment_shader2 = get_shader_content("trig2.frag");
 
 	GLuint vs = glCreateShader( GL_VERTEX_SHADER);
 	glShaderSource ( vs, 1, &vertex_shader, NULL);
@@ -112,12 +136,23 @@ int main(void) {
 	glShaderSource( fs, 1, &fragment_shader, NULL);
 	glCompileShader(fs);
 
+
+	GLuint fs2 = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource( fs2, 1, &fragment_shader2, NULL);
+	glCompileShader(fs2);
+
+
+
 	// create an empty gpu executable program
 	GLuint shader_program = glCreateProgram();
 	glAttachShader(shader_program, fs);
 	glAttachShader(shader_program, vs);
 	glLinkProgram(shader_program);
-
+	
+	GLuint shader_program2 = glCreateProgram();
+	glAttachShader(shader_program2, fs2);
+	glAttachShader(shader_program2, vs);
+	glLinkProgram(shader_program2);
 	// draw in a loop
 	
 	while ( !glfwWindowShouldClose( window ) ) {
@@ -138,7 +173,14 @@ int main(void) {
 //		glDrawArrays(GL_POINTS, 0, 6);
 
 		glDrawArrays(GL_TRIANGLES, 0, 3);
+		
+		glUseProgram(shader_program2);
+		glBindVertexArray(vao2);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		
 		glfwSwapBuffers(window);
+
+
 	}
 
 	// Close OpenGL window, context, and any other GLFW resources.
