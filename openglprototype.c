@@ -46,7 +46,7 @@ GLFWwindow* initgl() {
 	// start context with glfw lib
 	if ( !glfwInit()) {
 		fprintf( stderr, "ERROR: could not start GLFW3. \n");
-		return NULL;
+		exit(0);
 	}
 	
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
@@ -59,7 +59,7 @@ GLFWwindow* initgl() {
 	if (!window) {
 		fprintf( stderr, "ERROR: Could not open window with GLFW3.\n" );
 		glfwTerminate();
-		return NULL;
+		exit(0);
 	}
 	glfwMakeContextCurrent(window);
 
@@ -68,7 +68,7 @@ GLFWwindow* initgl() {
 
 	if (version_glad == 0) {
 		fprintf( stderr, "ERROR: Failed to initialize OpenGL context.\n" );
-		return NULL;
+		exit(0);
 	}
 
 	glViewport(0, 0, 800, 600);
