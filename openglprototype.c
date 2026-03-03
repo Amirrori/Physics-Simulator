@@ -15,7 +15,7 @@ char* get_shader_content(const char* fileName)
 	long size = 0;
 	char* shaderContent;
 
-	// Read file shize
+	// Read file size
 	fp = fopen(fileName, "rb");
 	if(fp==NULL) {
 		return "";
@@ -29,20 +29,24 @@ char* get_shader_content(const char* fileName)
 	//
 	fp = fopen(fileName, "r");
 	shaderContent = memset(malloc(size), '\0', size);
-	fread(shaderContent, 1, size-1, fp);
+	if(fread(shaderContent, 1, size-1, fp) < size-1)
+	{
+		return "";
+	}
+
 	fclose(fp);
 
 	return shaderContent;
 }
 
-int main(void) {
+GLFWwindow* initgl() {
+	
 	// INITIALIZATION PROCESS
 
-	printf("hello world!\n");
 	// start context with glfw lib
 	if ( !glfwInit()) {
 		fprintf( stderr, "ERROR: could not start GLFW3. \n");
-		return 1;
+		return NULL;
 	}
 	
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
@@ -55,7 +59,7 @@ int main(void) {
 	if (!window) {
 		fprintf( stderr, "ERROR: Could not open window with GLFW3.\n" );
 		glfwTerminate();
-		return 1;
+		return NULL;
 	}
 	glfwMakeContextCurrent(window);
 
@@ -64,70 +68,112 @@ int main(void) {
 
 	if (version_glad == 0) {
 		fprintf( stderr, "ERROR: Failed to initialize OpenGL context.\n" );
-		return 1;
+		return NULL;
 	}
 
 	glViewport(0, 0, 800, 600);
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-	printf("Loaded OPenGL %i. %i\n", GLAD_VERSION_MAJOR( version_glad ), GLAD_VERSION_MINOR( version_glad) );
+	printf("Loaded OpenGL %i. %i\n", GLAD_VERSION_MAJOR( version_glad ), GLAD_VERSION_MINOR( version_glad) );
 
 
 	printf( "Renderer: %s.\n", glGetString( GL_RENDERER ) );
 	printf( "OpenGL version supported %s.\n", glGetString( GL_VERSION ) );
+
+	return window;
+}
+
+//int vOPS(GLuint vbo, GLuint vao, float points[] ) {
+//
+//
+//	glGenBuffers(1, &vbo);
+//	glBindBuffer( GL_ARRAY_BUFFER, vbo);
+//	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW );
+//
+//	glGenVertexArrays( 1, &vao );
+//	glBindVertexArray( vao );
+//	glEnableVertexAttribArray( 0 );
+//	glBindBuffer( GL_ARRAY_BUFFER, vbo );
+//	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
+//
+//}
+
+int vOPS(GLuint *vbo, GLuint *vao, float points[] ) {
+
+
+	glGenBuffers(1, vbo);
+	glBindBuffer( GL_ARRAY_BUFFER, *vbo);
+	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW );
+
+	glGenVertexArrays( 1, vao );
+	glBindVertexArray( *vao );
+	glEnableVertexAttribArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, *vbo );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
+
+}
+
+
+int main(void) {
+
+	printf("hello world!\n");
+
+	GLFWwindow* window = initgl();
 	// We do our stuff here
 	
-	// Points of a triangle
+	// Points of a triangle [placeholder for now]
 	float points[] = {
 		-0.5f,  0.5f,  0.0f, // x,y,z of first point.
 		0.5f, -0.5f,  0.0f, // x,y,z of second point.
 		-0.5f, -0.5f,  0.0f  // x,y,z of third point.
-//		-0.5f, 0.5f, 0.0f, // forth
-//		0.5f, 0.5f, 0.0f, // fith
-//		0.5f, -0.5f, 0.0f // sixth
 	};
+
+
 	float points2[] = {
 		-0.5f, 0.5f, 0.0f, // first
 		0.5f, 0.5f, 0.0f, // second
 		0.5f, -0.5f, 0.0f // third
 	};
+
+
 	// Vertex Buffer Object (vbo)
 	
 	GLuint vbo = 0;
-	glGenBuffers(1, &vbo);
-	glBindBuffer( GL_ARRAY_BUFFER, vbo);
-	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW );
-
 	GLuint vbo2 = 0;
-
-	glGenBuffers(1, &vbo2);
-	glBindBuffer( GL_ARRAY_BUFFER, vbo2);
-	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points2, GL_STATIC_DRAW );
-
-
+	GLuint vao = 0;
+	GLuint vao2 = 0;
+	
+	vOPS(&vbo, &vao, points);
+	vOPS(&vbo2, &vao2, points2);
 
 	
 	// vertex array object (vao)
-	GLuint vao = 0;
-	glGenVertexArrays( 1, &vao );
-	glBindVertexArray( vao );
-	glEnableVertexAttribArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, vbo );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
 
+//	glGenBuffers(1, &vbo);
+//	glBindBuffer( GL_ARRAY_BUFFER, vbo);
+//	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW );
+//
+//	glGenVertexArrays( 1, &vao );
+//	glBindVertexArray( vao );
+//	glEnableVertexAttribArray( 0 );
+//	glBindBuffer( GL_ARRAY_BUFFER, vbo );
+//	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
+//
+//
+//	glGenBuffers(1, &vbo2);
+//	glBindBuffer( GL_ARRAY_BUFFER, vbo2);
+//	glBufferData( GL_ARRAY_BUFFER, 9 * sizeof(float), points2, GL_STATIC_DRAW );
+//
+//	glGenVertexArrays( 1, &vao2 );
+//	glBindVertexArray( vao2 );
+//	glEnableVertexAttribArray( 0 );
+//	glBindBuffer( GL_ARRAY_BUFFER, vbo2 );
+//	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
 	// second shape?
-	GLuint vao2 = 0;
-	
-	glGenVertexArrays( 1, &vao2 );
-	glBindVertexArray( vao2 );
-	glEnableVertexAttribArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, vbo2 );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
-
+	//
 	// shadering(colour the triangle) moved to imports
 	const char* vertex_shader = get_shader_content("trig.vert");
 	const char* fragment_shader = get_shader_content("trig.frag");
-	
-	const char* fragment_shader2 = get_shader_content("trig2.frag");
+	const char* fragment_shader2 = get_shader_content("trig2.frag"); 
 
 	GLuint vs = glCreateShader( GL_VERTEX_SHADER);
 	glShaderSource ( vs, 1, &vertex_shader, NULL);
@@ -185,5 +231,12 @@ int main(void) {
 
 	// Close OpenGL window, context, and any other GLFW resources.
 	glfwTerminate();
+
+//	free(vertex_shader);
+//	free(fragment_shader);
+//	free(fragment_shader2);
+	
 	return 0;
 }
+
+// note to self: turning things into functions really troubled me but after learning more about pointers and memory addresses I realized how I could rectify that.
