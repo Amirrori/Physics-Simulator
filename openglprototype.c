@@ -150,28 +150,28 @@ int main(void) {
 	
 	// Points of a triangle [placeholder for now]
 	float points[] = {
-		-0.5f,  0.5f,  0.0f, // x,y,z of first point.
+		0.0f,  0.0f,  0.0f, // x,y,z of first point.
 		0.5f, -0.5f,  0.0f, // x,y,z of second point.
 		-0.5f, -0.5f,  0.0f  // x,y,z of third point.
 	};
 
 
-	float points2[] = {
-		-0.5f, 0.5f, 0.0f, // first
-		0.5f, 0.5f, 0.0f, // second
-		0.5f, -0.5f, 0.0f // third
-	};
+//	float points2[] = {
+//		-0.5f, 0.5f, 0.0f, // first
+//		0.5f, 0.5f, 0.0f, // second
+//		0.5f, -0.5f, 0.0f // third
+//	};
 
 
 	// Vertex Buffer Object (vbo)
 	
 	GLuint vbo = 0;
-	GLuint vbo2 = 0;
+//	GLuint vbo2 = 0;
 	GLuint vao = 0;
-	GLuint vao2 = 0;
+//	GLuint vao2 = 0;
 	
 	vOPS(&vbo, &vao, points);
-	vOPS(&vbo2, &vao2, points2);
+//	vOPS(&vbo2, &vao2, points2);
 
 	
 	// vertex array object (vao)
@@ -201,7 +201,7 @@ int main(void) {
 	// shadering(colour the triangle) moved to imports
 	const char* vertex_shader = get_shader_content("trig.vert");
 	const char* fragment_shader = get_shader_content("trig.frag");
-	const char* fragment_shader2 = get_shader_content("trig2.frag"); 
+//	const char* fragment_shader2 = get_shader_content("trig2.frag"); 
 
 	GLuint vs = glCreateShader( GL_VERTEX_SHADER);
 	glShaderSource ( vs, 1, &vertex_shader, NULL);
@@ -211,9 +211,9 @@ int main(void) {
 	glCompileShader(fs);
 
 
-	GLuint fs2 = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource( fs2, 1, &fragment_shader2, NULL);
-	glCompileShader(fs2);
+//	GLuint fs2 = glCreateShader(GL_FRAGMENT_SHADER);
+//	glShaderSource( fs2, 1, &fragment_shader2, NULL);
+//	glCompileShader(fs2);
 
 
 
@@ -223,10 +223,10 @@ int main(void) {
 	glAttachShader(shader_program, vs);
 	glLinkProgram(shader_program);
 	
-	GLuint shader_program2 = glCreateProgram();
-	glAttachShader(shader_program2, fs2);
-	glAttachShader(shader_program2, vs);
-	glLinkProgram(shader_program2);
+//	GLuint shader_program2 = glCreateProgram();
+//	glAttachShader(shader_program2, fs2);
+//	glAttachShader(shader_program2, vs);
+//	glLinkProgram(shader_program2);
 	// draw in a loop
 	double prev_s = glfwGetTime();
 	double title_countdown_s = 0.1;
@@ -273,10 +273,10 @@ int main(void) {
 //		glPointSize(10.0f);
 //		glDrawArrays(GL_POINTS, 0, 6);
 
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-		
-		glUseProgram(shader_program2);
-		glBindVertexArray(vao2);
+		// Draw a triangle:
+
+//		glUseProgram(shader_program2);
+//		glBindVertexArray(vao2);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		
 		glfwSwapBuffers(window);
