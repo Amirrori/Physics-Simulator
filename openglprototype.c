@@ -5,9 +5,13 @@
 #include <GLFW/glfw3.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <stdbool.h>
 
 // loading shaders
+
+void error_callback_glfw(int error, const char* description) {
+	fprintf( stderr, "GLFW ERROR: code %i msg: %s. \n", error, description);
+}
 
 char* get_shader_content(const char* fileName)
 {
@@ -42,19 +46,43 @@ char* get_shader_content(const char* fileName)
 GLFWwindow* initgl() {
 	
 	// INITIALIZATION PROCESS
-
+	printf("Starting GLFW %s. \n", glfwGetVersionString());
+	 glfwSetErrorCallback( error_callback_glfw );
 	// start context with glfw lib
 	if ( !glfwInit()) {
 		fprintf( stderr, "ERROR: could not start GLFW3. \n");
 		exit(0);
 	}
-	
+	// Version information
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+	// Multisample Initialising (MSAA)
+	glfwWindowHint( GLFW_SAMPLES, 8 );
+	
+	bool full_screen = false;
 
-	GLFWwindow* window = glfwCreateWindow( 800, 600, "Hello Triangle", NULL, NULL);
+	GLFWmonitor *mon = NULL;
+	int win_w = 800;
+	int win_h = 600;
+
+	if ( full_screen ) {
+		mon = glfwGetPrimaryMonitor();
+
+		const GLFWvidmode* mode = glfwGetVideoMode(mon);
+
+		glfwWindowHint( GLFW_RED_BITS, mode->redBits );
+		glfwWindowHint( GLFW_GREEN_BITS, mode->greenBits );
+		glfwWindowHint( GLFW_BLUE_BITS, mode->blueBits );
+		glfwWindowHint( GLFW_REFRESH_RATE, mode->refreshRate );
+
+		win_w = mode->width;  // Use our 'desktop' resolution for window size
+		win_h = mode->height; // to get a 'full screen borderless' window.
+	}
+
+	// Window Creation
+	GLFWwindow* window = glfwCreateWindow( win_w, win_h, "Physics Simulator", mon, NULL);
 
 	if (!window) {
 		fprintf( stderr, "ERROR: Could not open window with GLFW3.\n" );
@@ -79,9 +107,9 @@ GLFWwindow* initgl() {
 	printf( "Renderer: %s.\n", glGetString( GL_RENDERER ) );
 	printf( "OpenGL version supported %s.\n", glGetString( GL_VERSION ) );
 
+
 	return window;
 }
-
 //int vOPS(GLuint vbo, GLuint vao, float points[] ) {
 //
 //
@@ -200,11 +228,20 @@ int main(void) {
 	glAttachShader(shader_program2, vs);
 	glLinkProgram(shader_program2);
 	// draw in a loop
-	
 	while ( !glfwWindowShouldClose( window ) ) {
+
 		//update window events.
 		
 		glfwPollEvents();
+		
+		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE)) {
+			glfwSetWindowShouldClose(window, 1);
+		}
+
+		// Check if the window resized.
+//		glfwGetWindowSize( window, &win_w, &win_h );
+   		// Update the viewport (drawing area) to fill the window dimensions.
+//		glViewport( 0, 0, win_w, win_h );
 
 		// Wipe the drawing surface clear
 
@@ -225,6 +262,7 @@ int main(void) {
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		
 		glfwSwapBuffers(window);
+		
 
 
 	}
