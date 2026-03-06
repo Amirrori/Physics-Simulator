@@ -228,9 +228,27 @@ int main(void) {
 	glAttachShader(shader_program2, vs);
 	glLinkProgram(shader_program2);
 	// draw in a loop
-	while ( !glfwWindowShouldClose( window ) ) {
+	double prev_s = glfwGetTime();
+	double title_countdown_s = 0.1;
+	while (!glfwWindowShouldClose(window)) {
+		double curr_s = glfwGetTime(); //get current time
+		double elapsed_s = curr_s - prev_s; // workout the time elapsed over the last frame
+		prev_s = curr_s; // Set the "previous time" for the next frame to use.
 
+		// print the FPS, but not every frame, to not cause flickering.
+		title_countdown_s -= elapsed_s;
+		
+		if (title_countdown_s <= 0.0 && elapsed_s > 0.0 ) {
+			double fps = 1.0 / elapsed_s;
+
+			// create a string and put the FPS as the window title.
+			//
+			char tmp[256];
+			sprintf(tmp, "FPS %.2lf", fps);
+			glfwSetWindowTitle(window, tmp);
+			title_countdown_s = 0.1;
 		//update window events.
+		}
 		
 		glfwPollEvents();
 		
