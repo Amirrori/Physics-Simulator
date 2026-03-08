@@ -1,0 +1,393 @@
+/**
+ * Bouncing Ball Physics Simulator
+ * 
+ * A terminal-based physics simulation demonstrating projectile motion,
+ * collisions, and energy conservation.
+ * 
+ * Architecture Layers:
+ * - Input Layer: user interaction and data collection
+ * - Physics Layer: core simulation logic and physics calculations
+ * - Visual Layer: rendering and trail visualization  
+ * - Analysis Layer: energy calculations and data analysis
+ */
+
+#include <stdio.h>
+#include <windows.h>  // for sleep and clearing screen on windows only
+#include <math.h>
+
+// ============================================================================
+// CONSTANTS & GLOBAL VARIABLES
+// ============================================================================
+
+#define WIDTH           40      // Width of the simulation box
+#define HEIGHT          20      // Height of the simulation box
+#define GRAVITY         -9.8    // Acceleration due to gravity (m/s^2)
+#define TRAIL_LENGTH    200     // Number of trail positions to remember
+
+// Trail tracking arrays
+int trail_x[TRAIL_LENGTH];      // X-coordinates of trail positions
+int trail_y[TRAIL_LENGTH];      // Y-coordinates of trail positions
+int trail_index = 0;            // Current index in trail circular buffer
+
+// ============================================================================
+// DATA STRUCTURES
+// ============================================================================
+
+/**
+ * Represents a ball in the physics simulation
+ */
+typedef struct {
+    float x;            // Current X position
+    float y;            // Current Y position
+    float velocityx;    // Velocity in X direction (m/s)
+    float velocityy;    // Velocity in Y direction (m/s)
+    float mass;         // Mass of the ball (kg)
+    float forcex;       // Current force in X direction (N)
+    float forcey;       // Current force in Y direction (N)
+    float restitution;  // Coefficient of restitution (0-1)
+} Ball;
+
+// ============================================================================
+// FUNCTION PROTOTYPES
+// ============================================================================
+
+// Input layer
+void input_speed_angle(Ball *b);
+void input_velocity_components(Ball *b);
+void get_user_inputs(Ball *b);
+
+// Physics layer
+void apply_gravity(Ball *b);
+void update(Ball *b, float dt);
+void check_collision(Ball *b);
+void simulation_step(Ball *b, float dt);
+
+// Visual layer
+void update_trail(Ball *b);
+void draw(Ball *b);
+
+// Analysis layer
+float kinetic_energy(Ball *b);
+float potential_energy(Ball *b);
+float total_energy(Ball *b);
+
+// ============================================================================
+// INPUT LAYER
+// ============================================================================
+
+
+/**
+ * asks users for launch speed and angle
+ * converts speed and angle into a x and y velocity components so we can use with current vector based system
+ * using trigonometric relationships:
+ *      velocityx = speed * cos(angle)
+ *      velocityy = speed * sin(angle)
+ *
+ */
+void input_speed_angle(Ball *b) {
+    float speed;
+    float angle_deg;
+
+    printf("Enter launch speed (m/s): ");
+    scanf("%f", &speed);
+
+    printf("Enter launch angle (degrees): ");
+    scanf("%f", &angle_deg);
+
+    float angle_rad = angle_deg * M_PI / 180.0;
+
+    b->velocityx = speed * cos(angle_rad);
+    b->velocityy = speed * sin(angle_rad);
+
+    printf("Calculated vx = %.2f m/s\n", b->velocityx);
+    printf("Calculated vy = %.2f m/s\n", b->velocityy);
+}
+
+
+/**
+ * asks user for x and y velocity
+ * instead of speed and angle.
+ *
+ */
+void input_velocity_components(Ball *b) {
+    printf("Enter velocity x (m/s): ");
+    scanf("%f", &b->velocityx);
+
+    printf("Enter velocity y (m/s): ");
+    scanf("%f", &b->velocityy);
+}
+
+
+/**
+ * main input handler function
+ * presents a menu for the user to choose how to input initial velocity:
+ * - Option 1: Speed and angle
+ * - Option 2: Velocity components (vector form)
+ * calls the appropriate function, based on user choice.
+ *
+ */
+void get_user_inputs(Ball *b) {
+    int choice;
+
+    printf("Choose input type:\n");
+    printf("1) Speed and Angle (GCSE style)\n");
+    printf("2) Velocity Components vx, vy (Vector form)\n");
+    printf("Enter choice: ");
+    scanf("%d", &choice);
+
+    if (choice == 1) {
+        input_speed_angle(b);
+    }
+    else if (choice == 2) {
+        input_velocity_components(b);
+    }
+    else {
+        printf("Invalid choice. Defaulting to speed/angle.\n");
+        input_speed_angle(b);
+    }
+}
+
+// ============================================================================
+// PHYSICS LAYER
+// ============================================================================
+
+
+/**
+ * applies the gravity to the ball
+ * uses newtons second law: F = ma
+ * here, acceleration a = g (gravity) acting downward (negative Y direction).
+ * the force is accumulated into the ball’s forcey field for this timestep.
+ *
+ */
+void apply_gravity(Ball *b) {
+    b->forcey += b->mass * GRAVITY;
+}
+
+
+/**
+ * updates the balls velocity and position using integration.
+ * accel is calculated from current forces: a = F/m
+ * velocity is updated: v = v + a * dt
+ * position is updated: x = x + v * dt, y = y + v * dt
+ * forces are reset after the update for the next frame.
+ *
+ */
+void update(Ball *b, float dt) {
+    // calc accel using F = ma
+    float ax = b->forcex / b->mass;
+    float ay = b->forcey / b->mass;
+
+    // update velocity
+    b->velocityx += ax * dt;
+    b->velocityy += ay * dt;
+
+    // update position
+    b->x += b->velocityx * dt;
+    b->y += b->velocityy * dt;
+
+    // reset forces, ready for next frame
+    b->forcex = 0;
+    b->forcey = 0;
+}
+
+
+/**
+ * checks and handles collisions between the ball and the simulation boundaries:
+ * - left and right walls: x velocity is reversed and scaled by restitution
+ * - floor: y velocity is reversed and scaled by restitution
+ *          Very small bounces are stopped (anti jitter)
+ * - ceiling: Y velocity is reversed (no energy loss)
+ *
+ */
+void check_collision(Ball *b) {
+    // LEFT WALL
+    if (b->x <= 0) {
+        b->x = 0;
+        b->velocityx = -b->velocityx * b->restitution;
+    }
+
+    // RIGHT WALL
+    if (b->x >= WIDTH) {
+        b->x = WIDTH;
+        b->velocityx = -b->velocityx * b->restitution;
+    }
+
+    // FLOOR
+    if (b->y <= 0) {
+        b->y = 0;
+        b->velocityy = -b->velocityy * b->restitution;
+
+        // anti jitter stops very small bounces
+        if (fabs(b->velocityy) < 0.1) {
+            b->velocityy = 0;
+        }
+    }
+
+    // CEILING
+    if (b->y >= HEIGHT) {
+        b->y = HEIGHT;
+        b->velocityy = -b->velocityy;
+    }
+}
+
+
+/**
+ * Executes a single simulation step/frame for the ball:
+ * 1) applies gravity
+ * 2) updates velocity and position
+ * 3) checks and handles collisions with walls, floor, ceiling
+ * 4) updates the trail for visual rendering (TERMINAL BASED ONLY)
+ *
+ */
+void simulation_step(Ball *b, float dt) {
+    apply_gravity(b);
+    update(b, dt);
+    check_collision(b);
+    update_trail(b);
+}
+
+// ============================================================================
+// VISUAL LAYER
+// ============================================================================
+
+
+/**
+ * updates the trail positions using a circular buffer. ##################################################################
+ * stores the current ball position in the trail history so we can
+ * visualize its previous positions on the terminal.
+ * 
+ * uses a fixed size array of length TRAIL_LENGTH:
+ * - trail_index points to the current slot to overwrite
+ * - When trail_index reaches TRAIL_LENGTH, it wraps back to 0
+ *
+ */
+void update_trail(Ball *b) {
+    trail_x[trail_index] = (int)b->x;
+    trail_y[trail_index] = (int)b->y;
+
+    trail_index++;
+    if (trail_index >= TRAIL_LENGTH) {
+        trail_index = 0;
+    }
+}
+
+
+/**
+ * renders current simulation state to the terminal.
+ * Visual elements:
+ * - ball: displayed as "O" at its current position
+ * - walls: "|" at x=0 and x=WIDTH
+ * - floor: "-" at y=0
+ * - trail: "." for older positions, "o" for recent positions (5 recent positions) (fading effect)
+ *
+ * screen is cleared before each frame using system("cls") (Windows only).
+ * iterates over the grid row by row from top to bottom.
+ *
+ */
+void draw(Ball *b) {
+    system("cls");
+
+    for (int y = HEIGHT; y >= 0; y--) {
+        for (int x = 0; x <= WIDTH; x++) {
+            // draw ball at current position
+            if ((int)b->x == x && (int)b->y == y) {
+                printf("O");
+            }
+            // FLOORS
+            else if (y == 0) {
+                printf("-");
+            }
+            // WALLS
+            else if (x == 0 || x == WIDTH) {
+                printf("|");
+            }
+            // check and draw trail with fading effect
+            else {
+                int trail_here = 0;
+
+                for (int i = 0; i < TRAIL_LENGTH; i++) {
+                    if (trail_x[i] == x && trail_y[i] == y) {
+                        // recent positions appear as 'o', older as '.'
+                        if (i > trail_index - 5 || (i + TRAIL_LENGTH - trail_index) < 5)
+                            printf("o");
+                        else
+                            printf(".");
+                        trail_here = 1;
+                        break;
+                    }
+                }
+
+                if (!trail_here) {
+                    printf(" ");
+                }
+            }
+        }
+        printf("\n");
+    }
+}
+
+// ============================================================================
+// ANALYSIS LAYER
+// ============================================================================
+
+float kinetic_energy(Ball *b) {
+    float v2 = b->velocityx * b->velocityx + b->velocityy * b->velocityy;
+    return 0.5 * b->mass * v2;
+}
+
+float potential_energy(Ball *b) {
+    return b->mass * 9.8 * b->y;
+}
+
+float total_energy(Ball *b) {
+    return kinetic_energy(b) + potential_energy(b);
+}
+
+// ============================================================================
+// MAIN PROGRAM
+// ============================================================================
+
+int main() {
+    printf("Physics Simulator Started\n\n");
+    
+    // initialise ball with default parameters
+    Ball ball = {5, 5, 0, 0, 1, 0, 0, 0.8};
+
+    // INPUT PHASE
+    get_user_inputs(&ball);
+
+    printf("Enter mass (kg): ");
+    scanf("%f", &ball.mass);
+
+    printf("Enter coefficient of restitution (0 - 1): ");
+    scanf("%f", &ball.restitution);
+
+    // SIMULATION SETUP
+    float dt = 0.05;
+    float total_time;
+    printf("Enter total simulation time (seconds): ");
+    scanf("%f", &total_time);
+
+    int max_frames = (int)(total_time / dt);
+
+    // SIMULATION LOOP
+    for (int frame = 0; frame < max_frames; frame++) {
+        simulation_step(&ball, dt);
+        draw(&ball);
+
+        float ke = kinetic_energy(&ball);
+        float pe = potential_energy(&ball);
+        float te = total_energy(&ball);
+
+        printf("\nTime: %.2f s", frame * dt);
+        printf("\nKinetic Energy: %.2f J", ke);
+        printf("\nPotential Energy: %.2f J", pe);
+        printf("\nTotal Energy: %.2f J\n", te);
+
+        // dynamic sleep based on dt (allows users to control time of simulation)
+        Sleep((int)(dt * 1000 * 1.2));
+    }
+
+    printf("\nSimulation completed!\n");
+    return 0;
+}
