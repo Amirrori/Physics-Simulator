@@ -1,0 +1,527 @@
+#include "C:\Users\ibrah\Desktop\PhysicsSimulator\include\raylib.h"
+#include "C:\Users\ibrah\Desktop\PhysicsSimulator\include\rlgl.h"
+#include "raylib.h"
+
+/**
+ * Multi-Ball Bouncing Physics Simulator
+ * 
+ * Terminal-based physics simulation demonstrating:
+ * - Projectile motion
+ * - Collisions (wall/floor and between balls)
+ * - Energy conservation
+ * 
+ * Architecture Layers:
+ * - Input Layer: user interaction and data collection
+ * - Physics Layer: core simulation logic and physics calculations
+ * - Visual Layer: rendering and trail visualization  
+ * - Analysis Layer: energy calculations and data analysis
+ */
+
+#include <stdio.h>
+#include <math.h>
+
+// ============================================================================
+// CONSTANTS & GLOBAL VARIABLES
+// ============================================================================
+
+#define WIDTH           40      // Width of the simulation box
+#define HEIGHT          20      // Height of the simulation box
+#define GRAVITY         -9.8    // Acceleration due to gravity (m/s^2)
+#define TRAIL_LENGTH    200     // Number of trail positions to remember
+#define MAX_BALLS       5       // Maximum number of balls allowed
+
+int trail_x[MAX_BALLS][TRAIL_LENGTH]; // X-coordinates of trails per ball
+int trail_y[MAX_BALLS][TRAIL_LENGTH]; // Y-coordinates of trails per ball
+int trail_index[MAX_BALLS];           // Current index in circular buffer per ball
+
+int num_balls;                         // Total number of balls in simulation
+
+// ============================================================================
+// DATA STRUCTURES
+// ============================================================================
+
+typedef struct {
+    float x;            // Current X position
+    float y;            // Current Y position
+    float velocityx;    // Velocity in X direction (m/s)
+    float velocityy;    // Velocity in Y direction (m/s)
+    float mass;         // Mass of the ball (kg)
+    float forcex;       // Current force in X direction (N)
+    float forcey;       // Current force in Y direction (N)
+    float restitution;  // Coefficient of restitution (0-1)
+} Ball;
+
+// ============================================================================
+// FUNCTION PROTOTYPES
+// ============================================================================
+
+// Input layer
+void input_speed_angle(Ball *b);
+void input_velocity_components(Ball *b);
+void get_user_inputs(Ball balls[]);
+
+// Physics layer
+void apply_gravity(Ball *b);
+void update(Ball *b, float dt);
+void check_collision(Ball *b);
+void check_ball_collisions(Ball balls[], int num_balls);
+void simulation_step(Ball balls[], int num_balls, float dt);
+
+// Visual layer
+void update_trail(Ball *b, int ball_index);
+void draw(Ball balls[], int num_balls);
+
+// Analysis layer
+float kinetic_energy(Ball *b);
+float potential_energy(Ball *b);
+float total_energy(Ball *b);
+
+// ============================================================================
+// INPUT LAYER
+// ============================================================================
+
+
+/**
+ * asks users for launch speed and angle for a single ball
+ * converts speed and angle into x and y velocity vector componens using trig:
+ *      velocityx = speed * cos(angle)
+ *      velocityy = speed * sin(angle)
+ * this allows the simulation to work with vector-based velocities
+ */
+void input_speed_angle(Ball *b) {
+    float speed, angle_deg;
+    printf("Enter launch speed (m/s): ");
+    scanf("%f", &speed);
+    printf("Enter launch angle (degrees): ");
+    scanf("%f", &angle_deg);
+
+    float angle_rad = angle_deg * M_PI / 180.0;
+    b->velocityx = speed * cos(angle_rad);
+    b->velocityy = speed * sin(angle_rad);
+
+    printf("Calculated vx = %.2f m/s\n", b->velocityx);
+    printf("Calculated vy = %.2f m/s\n", b->velocityy);
+}
+
+
+/**
+ * asks user to input velocity components directly:
+ * - velocityx: horizontal speed
+ * - velocityy: vertical speed
+ * allows users to skip the speed/angle step and directly define motion vector.
+ */
+void input_velocity_components(Ball *b) {
+    printf("Enter velocity x (m/s): ");
+    scanf("%f", &b->velocityx);
+
+    printf("Enter velocity y (m/s): ");
+    scanf("%f", &b->velocityy);
+}
+
+
+/**
+ * handles multi-ball input from the user
+ * - asks for number of balls (1 to MAX_BALLS)
+ * - iterates through each ball to get:
+ *   - initial velocity (speed/angle or components)
+ *   - mass
+ *   - coefficient of restitution
+ * - stores values into the balls[] array
+ * checks balls in vlaid range
+ */
+void get_user_inputs(Ball balls[]) {
+    printf("Enter number of balls (1-%d): ", MAX_BALLS);
+    scanf("%d", &num_balls);
+
+    if(num_balls < 1) num_balls = 1;
+
+    if(num_balls > MAX_BALLS) num_balls = MAX_BALLS;
+
+    for(int i = 0; i < num_balls; i++) {
+        printf("\n Ball %d \n", i + 1);
+        int choice;
+        printf("Choose input type:\n1) Speed and Angle (GCSE style)\n2) Velocity Components vx, vy (Vector form)\nEnter choice: ");
+        scanf("%d", &choice);
+        if(choice == 1) input_speed_angle(&balls[i]);
+        else if(choice == 2) input_velocity_components(&balls[i]);
+        else {
+            printf("Invalid choice. Defaulting to speed/angle.\n");
+            input_speed_angle(&balls[i]);
+        }
+
+        printf("Enter mass (kg): ");
+        scanf("%f", &balls[i].mass);
+
+        printf("Enter coefficient of restitution (0 - 1): ");
+        scanf("%f", &balls[i].restitution);
+    }
+}
+
+// ============================================================================
+// PHYSICS LAYER
+// ============================================================================
+
+
+/**
+ * applies gravity to a ball
+ * - uses newtons 2nd law: F = ma
+ * - forcey is incremented by mass * GRAVITY
+ * - keeps force accumulation separate so multiple forces could be added if needed
+ */
+void apply_gravity(Ball *b) {
+    b->forcey += b->mass * GRAVITY;
+}
+
+
+/**
+ * updates ball position and velocity for the current frame
+ * - calcs acceleration: ax = forcex / mass, ay = forcey / mass
+ * - updates velocity using integration: v = v + a * dt
+ * - updates position: x = x + vx * dt, y = y + vy * dt
+ * - resets forces for the next frame
+ */
+void update(Ball *b, float dt) {
+    float ax = b->forcex / b->mass;
+    float ay = b->forcey / b->mass;
+    b->velocityx += ax * dt;
+    b->velocityy += ay * dt;
+    b->x += b->velocityx * dt;
+    b->y += b->velocityy * dt;
+    b->forcex = 0;
+    b->forcey = 0;
+}
+
+
+/**
+ * handles collisions with simulation boundaries for a single ball
+ * - left and right walls: reverses x velocity and scales by restitution
+ * - floor: reverses y velocity and scales by restitution; stops very small bounces to avoid jitter
+ * - ceiling: reverses y velocity (no energy loss applied)
+ * ensures balls stay within the box.
+ */
+void check_collision(Ball *b) {
+    // LEFT WALL
+    if(b->x <= 0) { b->x = 0; b->velocityx = -b->velocityx * b->restitution; }
+
+    // RIGHT WALL
+    if(b->x >= WIDTH) { b->x = WIDTH; b->velocityx = -b->velocityx * b->restitution; }
+
+    // FLOOR
+    if(b->y <= 0) {
+        b->y = 0;
+        b->velocityy = -b->velocityy * b->restitution;
+        if(fabs(b->velocityy) < 0.1) b->velocityy = 0;
+    }
+
+    // CEILING
+    if(b->y >= HEIGHT) { b->y = HEIGHT; b->velocityy = -b->velocityy; }
+}
+
+/**
+ * handles collisions between all balls using elastic collision aprox
+ * - iterates through all ball pairs
+ * - calcs distance between centers
+ * - if balls overlap (distance < min_dist):
+ *    - compute collision normal (nx, ny)
+ *    - calc relative velocity along normal
+ *    - apply momentum conservation formula to update velocities
+ *
+ * after velocity resolution, a position correction step is applied:
+ * - prevents balls from remaining overlapped after collision
+ * - pushes both balls apart along the collision normal
+ * - improves simulation stability and prevents repeated collision jitter
+ *
+ * assumes equal radius for all balls (radius = 0.5 units)
+ */
+void check_ball_collisions(Ball balls[], int num_balls) {
+
+    for(int i = 0; i < num_balls; i++) {
+        for(int j = i + 1; j < num_balls; j++) {
+            float dx = balls[j].x - balls[i].x;
+            float dy = balls[j].y - balls[i].y;
+            float distance = sqrt(dx*dx + dy*dy);
+            float min_dist = 1.0; // assume radius=0.5
+
+			if(distance < min_dist && distance != 0) {
+
+				float nx = dx / distance;
+				float ny = dy / distance;
+
+				// relative velocity along normal
+				float p = 2 * (balls[i].velocityx*nx + balls[i].velocityy*ny
+							- balls[j].velocityx*nx - balls[j].velocityy*ny) /
+						(balls[i].mass + balls[j].mass);
+
+				// update velocities
+				balls[i].velocityx -= p * balls[j].mass * nx;
+				balls[i].velocityy -= p * balls[j].mass * ny;
+				balls[j].velocityx += p * balls[i].mass * nx;
+				balls[j].velocityy += p * balls[i].mass * ny;
+
+				// position correction
+				float overlap = min_dist - distance;
+
+				balls[i].x -= nx * overlap * 0.5;
+				balls[i].y -= ny * overlap * 0.5;
+
+				balls[j].x += nx * overlap * 0.5;
+				balls[j].y += ny * overlap * 0.5;
+			}
+        }
+    }
+}
+
+
+/**
+ * executes one frame for all balls
+ * for each ball:
+ * 1) apply gravity
+ * 2) update velocity and position
+ * 3) check wall/floor/ceiling collisions
+ * 4) update visual trail
+ * finally, handle ball to ball collisions after all balls are updated
+ */
+void simulation_step(Ball balls[], int num_balls, float dt) {
+    for(int i = 0; i < num_balls; i++) {
+        apply_gravity(&balls[i]);
+        update(&balls[i], dt);
+        check_collision(&balls[i]);
+        update_trail(&balls[i], i);
+    }
+    check_ball_collisions(balls, num_balls);
+}
+
+// ============================================================================
+// VISUAL LAYER
+// ============================================================================
+
+
+/**
+ * records the balls position in a circular buffer for trail visualisation
+ * - stores (x, y) coordinates in trail_x and trail_y arrays per ball
+ * - increments trail_index, wraps around when reaching TRAIL_LENGTH
+ * - allows previous positions to be drawn as dots in the terminal for motion tracing
+ */
+void update_trail(Ball *b, int ball_index) {
+    trail_x[ball_index][trail_index[ball_index]] = (int)b->x;
+    trail_y[ball_index][trail_index[ball_index]] = (int)b->y;
+    trail_index[ball_index]++;
+    if(trail_index[ball_index] >= TRAIL_LENGTH) trail_index[ball_index] = 0;
+}
+
+
+/**
+ * renders simulation to terminal
+ * - clears the screen (Windows only)
+ * - iterates row by row, column by column:
+ *   - draw walls (|) at left/right edges
+ *   - draw floor (-) at y=0
+ *   - draw each ball as "O"
+ *   - draw trail positions as "." for past positions
+ * - allows multiple balls and their trails to be displayed simultaneously
+ */
+void draw(Ball balls[], int num_balls) {
+    for(int y = HEIGHT; y >= 0; y--) {
+        for(int x = 0; x <= WIDTH; x++) {
+            int drawn = 0;
+            for(int b = 0; b < num_balls; b++) {
+                if((int)balls[b].x == x && (int)balls[b].y == y) {
+                    printf("O"); drawn = 1; break;
+                }
+            }
+            if(drawn) continue;
+            if(y == 0) printf("-");
+            else if(x == 0 || x == WIDTH) printf("|");
+            else {
+                int trail_here = 0;
+                for(int b = 0; b < num_balls; b++) {
+                    for(int i = 0; i < TRAIL_LENGTH; i++) {
+                        if(trail_x[b][i] == x && trail_y[b][i] == y) { printf("."); trail_here = 1; break; }
+                    }
+                    if(trail_here) break;
+                }
+                if(!trail_here) printf(" ");
+            }
+        }
+        printf("\n");
+    }
+}
+
+// ============================================================================
+// ANALYSIS LAYER
+// ============================================================================
+
+
+/**
+ * calcs kinetic energy of a single ball
+ * KE = 0.5 * mass * (vx^2 + vy^2)
+ */
+float kinetic_energy(Ball *b) { return 0.5 * b->mass * (b->velocityx*b->velocityx + b->velocityy*b->velocityy); }
+
+
+/**
+ * calcs gravitational potential energy of a single ball
+ * PE = mass * g * height
+ */
+float potential_energy(Ball *b) { return b->mass * 9.8 * b->y; }
+
+
+/**
+ * returns total mechanical energy of a single ball
+ * TE = KE + PE
+ * useful for checking energy conservation in the simulation
+ */
+float total_energy(Ball *b) { return kinetic_energy(b) + potential_energy(b); }
+
+// ============================================================================
+// MAIN PROGRAM
+// ============================================================================
+
+/**
+ * main entry point of the multi-ball physics simulator
+ *
+ * responsibilities of this function:
+ * 1) initialise ball objects
+ * 2) collect all user inputs (number of balls, velocities, mass, restitution)
+ * 3) config simulation timing parameters
+ * 4) run the main simulation loop
+ * 5) compute and display system energy values
+ *
+ * simulation loop process per frame:
+ * - update physics for all balls (gravity, movement, collisions)
+ * - redraw the terminal scene
+ * - calc total kinetic and potential energy
+ * - pause briefly so animation is visible
+ *
+ * the simulation runs until the specified total simulation time is reached.
+ */
+
+
+    
+
+
+#define SCALE 30
+
+#define SCREEN_WIDTH  (WIDTH * SCALE)
+#define SCREEN_HEIGHT (HEIGHT * SCALE)
+
+
+
+// Raylib Visual Layer (NEW)
+void init_raylib();
+void draw_raylib(Ball balls[], int num_balls);
+void close_raylib();
+void run_raylib_simulation(Ball balls[], float dt, int max_frames);
+
+
+void init_raylib()
+{
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Simulator - Raylib");
+    SetTargetFPS(60);
+}
+
+void draw_raylib(Ball balls[], int num_balls)
+{
+    BeginDrawing();
+
+    ClearBackground(BLACK);
+
+    // Draw floor
+    DrawLine(0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE);
+
+    // Draw walls
+    DrawLine(0, 0, 0, SCREEN_HEIGHT, WHITE);
+    DrawLine(SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE);
+
+    // Draw trails
+    for(int b = 0; b < num_balls; b++)
+    {
+        for(int i = 0; i < TRAIL_LENGTH; i++)
+        {
+            int px = trail_x[b][i] * SCALE;
+            int py = SCREEN_HEIGHT - trail_y[b][i] * SCALE;
+
+            DrawCircle(px, py, 2, GRAY);
+        }
+    }
+
+    // Draw balls
+    for(int i = 0; i < num_balls; i++)
+    {
+        int px = balls[i].x * SCALE;
+        int py = SCREEN_HEIGHT - balls[i].y * SCALE;
+
+        DrawCircle(px, py, 8, RED);
+    }
+
+    EndDrawing();
+}
+
+
+void close_raylib()
+{
+    CloseWindow();
+}
+
+
+
+
+
+
+void run_raylib_simulation(Ball balls[], float dt, int max_frames)
+{
+    const int screenWidth = 800;
+    const int screenHeight = 600;
+
+    InitWindow(screenWidth, screenHeight, "Multi-Ball Physics Simulator");
+    SetTargetFPS((int)(1.0f / dt));
+
+    // Convert simulation coordinates to screen coordinates
+    float scaleX = screenWidth / (float)WIDTH;
+    float scaleY = screenHeight / (float)HEIGHT;
+
+    for(int frame = 0; frame < max_frames && !WindowShouldClose(); frame++)
+    {
+        // Physics update
+        simulation_step(balls, num_balls, dt);
+
+        // Drawing
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        for(int i = 0; i < num_balls; i++)
+        {
+            // Map physics coordinates to screen
+            float x = balls[i].x * scaleX;
+            float y = screenHeight - balls[i].y * scaleY; // invert Y for screen
+
+            DrawCircle((int)x, (int)y, 10, RED); // draw ball
+        }
+
+        EndDrawing();
+    }
+
+    CloseWindow();
+}
+
+
+int main()
+{
+    Ball balls[MAX_BALLS] = {0};
+
+    // Input phase
+    get_user_inputs(balls);
+
+    float dt = 0.05f;
+    float total_time;
+
+    printf("Enter total simulation time (seconds): ");
+    scanf("%f", &total_time);
+
+    int max_frames = (int)(total_time / dt);
+
+    // Run the Raylib simulation
+    run_raylib_simulation(balls, dt, max_frames);
+
+    return 0;
+}
