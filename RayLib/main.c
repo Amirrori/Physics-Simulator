@@ -3,6 +3,8 @@
 
 
 const float BALLRADIUS = 15.0; //All balls with have the same radius
+const int SCREENWIDTH = 1280;
+const int SCREENHEIGHT = 720;
 
 // class for the ball
 typedef struct {
@@ -25,17 +27,28 @@ int ArrayLength(Ball Array[]){
 
 void DrawBalls(Ball Balls[]){
     int i ;
-    for (i = 0; i <= ArrayLength(Balls); i++){
+    for (i = 0; i <= ArrayLength(Balls)+1; i++){
         DrawCircle(Balls[i].x, Balls[i].y, BALLRADIUS, RED);
+        printf("Drew ball");
     };
 };
 
+void drawCustomWindow(){
 
+    //Drawing the UI for the simulator
+
+    char GridFileName[] = "GridBG.png";
+
+    
+
+    DrawRectangle(0.0, 0.0, SCREENWIDTH,SCREENHEIGHT, GRAY); //Draw the grey background
+    DrawRectangle(SCREENWIDTH*0.1,SCREENHEIGHT*0.1, SCREENWIDTH,SCREENHEIGHT/1.15, WHITE); //White main area
+    Texture GridTexture = LoadTexture(GridFileName); // Define grid texture
+    DrawTextureEx(GridTexture, (Vector2){SCREENWIDTH*0.1, SCREENHEIGHT*0.1}, 0.0, 0.8, WHITE); // Render the grid
+
+}
 
 int main (){
-
-    const int SCREENWIDTH = 800;
-    const int SCREENHEIGHT = 600;
 
     //Create window
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Yo World");
@@ -51,11 +64,13 @@ int main (){
         ClearBackground(RAYWHITE);
 
 
-        DrawText("WASSUP", 400, 0, 12, BLACK);
+        //DrawText("WASSUP", 400, 0, 12, BLACK);
 
-        Ball Balls[2] = {{10,10,0,0,0,0,0}, {20,20,0,0,0,0,0}};
+        // Ball Balls[2] = {{500,500,0,0,0,0,0}, {200,200,0,0,0,0,0}};
 
-        DrawBalls(Balls);
+        // DrawBalls(Balls);
+
+        drawCustomWindow();
 
         EndDrawing();
     };
