@@ -1,10 +1,14 @@
 #include "raylib.h"
 #include <stdio.h>
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
+
 
 
 const float BALLRADIUS = 15.0; //All balls with have the same radius
-const int SCREENWIDTH = 1280;
-const int SCREENHEIGHT = 720;
+
+float BallCountSliderValue;
+float GravitySliderValue = -9.8;
 
 // class for the ball
 typedef struct {
@@ -17,62 +21,80 @@ typedef struct {
     float restitution; // NEW
 } Ball;
 
-int ArrayLength(Ball Array[]){
+// int ArrayLength(Ball Array[]){
     
-    int size1 = sizeof(Array);
-    unsigned int newsize = size1/sizeof(Array[0]);
-    printf("The size of the array is %d", newsize);
-    return newsize;
-};
+//     int size1 = sizeof(Array);
+//     unsigned int newsize = size1/sizeof(Array[0]);
+//     printf("The size of the array is %d", newsize);
+//     return newsize;
+// };
 
-void DrawBalls(Ball Balls[]){
-    int i ;
-    for (i = 0; i <= ArrayLength(Balls)+1; i++){
-        DrawCircle(Balls[i].x, Balls[i].y, BALLRADIUS, RED);
-        printf("Drew ball");
-    };
-};
+// void DrawBalls(Ball Balls[]){
+//     int i ;
+//     for (i = 0; i <= ArrayLength(Balls)+1; i++){
+//         DrawCircle(Balls[i].x, Balls[i].y, BALLRADIUS, RED);
+//         printf("Drew ball");
+//     };
+// };
 
-void drawCustomWindow(){
+void drawCustomWindow(Texture GridTexture , Font FontToUse){
 
     //Drawing the UI for the simulator
 
-    char GridFileName[] = "GridBG.png";
+    DrawRectangle(0.0, 0.0, 1280.0, 720.0, GRAY); //Draw the grey background
+    DrawRectangle(0.01, 0.01, 1280.0,720.0, WHITE); //White main area
 
-    
+    DrawTextureRec(GridTexture, (Rectangle){0.0,0.0,874.0,716.0}, (Vector2){0.0, 0.0}, WHITE); // Render the grid
 
-    DrawRectangle(0.0, 0.0, SCREENWIDTH,SCREENHEIGHT, GRAY); //Draw the grey background
-    DrawRectangle(SCREENWIDTH*0.1,SCREENHEIGHT*0.1, SCREENWIDTH,SCREENHEIGHT/1.15, WHITE); //White main area
-    Texture GridTexture = LoadTexture(GridFileName); // Define grid texture
-    DrawTextureEx(GridTexture, (Vector2){SCREENWIDTH*0.1, SCREENHEIGHT*0.1}, 0.0, 0.8, WHITE); // Render the grid
+    DrawLineEx((Vector2){874.0,716.0},(Vector2){874.0,0.0},5.0,BLACK); //Drawing border between the grid and the buttons
+
+    DrawTextPro(FontToUse, "Options", (Vector2){900.0, 0.0}, (Vector2){0.0, 0.0}, 0.0, 24.0, 1.0, BLACK); //Draw the text "Options"
+
+    DrawLineEx((Vector2){889.0, 20.0}, (Vector2){990.0, 20.0}, 2.0, BLACK ); //Draw line under the "options" text
+
+    GuiSlider((Rectangle){900.0, 60.0, 100.0, 10.0},"1", "5",&BallCountSliderValue, 1.0, 5.0);
+
+    DrawTextPro(FontToUse, TextFormat("Ball Amount: %d",(int)BallCountSliderValue), (Vector2){900.0, 40.0}, (Vector2){0.0, 0.0}, 0.0, 18.0, 1.0, BLACK); //Draw the text for the current ball count
+
+    GuiSliderPro((Rectangle){900.0, 140.0, 100.0, 10.0},"-100.0", "100.0",&GravitySliderValue, -100.0, 100.0, 10);
+
+    DrawTextPro(FontToUse, TextFormat("Gravity: %.2f",GravitySliderValue), (Vector2){900.0, 100.0}, (Vector2){0.0, 0.0}, 0.0, 18.0, 1.0, BLACK);
 
 }
 
 int main (){
 
     //Create window
-    InitWindow(SCREENWIDTH, SCREENHEIGHT, "Yo World");
+    InitWindow(1280.0, 716.0, "PHYSICS SIMULATOR");
 
     //Set frames per second of the window
     SetTargetFPS(60);
 
+
+    Texture GridTexture = LoadTexture("GridBG.png"); // Define grid texture
+
+    Font FontToUse = LoadFont(""); //Not loading a font but want to use the default style
+
+
     while (!WindowShouldClose()){
+
         //Open the drawing buffer
         BeginDrawing();
 
         //Set the background to white to avoid tearing and other issues
         ClearBackground(RAYWHITE);
+        
+        //Draw the custom UI and button window
+        drawCustomWindow(GridTexture, FontToUse);
 
-
-        //DrawText("WASSUP", 400, 0, 12, BLACK);
-
-        // Ball Balls[2] = {{500,500,0,0,0,0,0}, {200,200,0,0,0,0,0}};
-
-        // DrawBalls(Balls);
-
-        drawCustomWindow();
-
+        //Stop the drawing, remove from buffer
         EndDrawing();
-    };
+    }
+
+    UnloadTexture(GridTexture); //Unload for performance
+    UnloadFont(FontToUse); //Unload for performance
+
+    CloseWindow();
+    
     return 0;
-};
+}
