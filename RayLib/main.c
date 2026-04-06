@@ -21,22 +21,6 @@ typedef struct {
     float restitution; // NEW
 } Ball;
 
-// int ArrayLength(Ball Array[]){
-    
-//     int size1 = sizeof(Array);
-//     unsigned int newsize = size1/sizeof(Array[0]);
-//     printf("The size of the array is %d", newsize);
-//     return newsize;
-// };
-
-// void DrawBalls(Ball Balls[]){
-//     int i ;
-//     for (i = 0; i <= ArrayLength(Balls)+1; i++){
-//         DrawCircle(Balls[i].x, Balls[i].y, BALLRADIUS, RED);
-//         printf("Drew ball");
-//     };
-// };
-
 void drawCustomWindow(Texture GridTexture , Font FontToUse){
 
     //Drawing the UI for the simulator
@@ -56,11 +40,16 @@ void drawCustomWindow(Texture GridTexture , Font FontToUse){
 
     DrawTextPro(FontToUse, TextFormat("Ball Amount: %d",(int)BallCountSliderValue), (Vector2){900.0, 40.0}, (Vector2){0.0, 0.0}, 0.0, 18.0, 1.0, BLACK); //Draw the text for the current ball count
 
-    GuiSliderPro((Rectangle){900.0, 140.0, 100.0, 10.0},"-100.0", "100.0",&GravitySliderValue, -100.0, 100.0, 10);
+   // GuiSliderPro((Rectangle){900.0, 140.0, 100.0, 10.0},"-100.0", "100.0",&GravitySliderValue, -100.0, 100.0, 10);
 
-    DrawTextPro(FontToUse, TextFormat("Gravity: %.2f",GravitySliderValue), (Vector2){900.0, 100.0}, (Vector2){0.0, 0.0}, 0.0, 18.0, 1.0, BLACK);
+    DrawTextPro(FontToUse, TextFormat("Gravity (Downwards accelerations): %.1f",GravitySliderValue), (Vector2){900.0, 100.0}, (Vector2){0.0, 0.0}, 0.0, 18.0, 1.0, BLACK);
+
+    GuiSlider((Rectangle){900.0, 150.0, 100.0, 40.0},"1", "5",&GravitySliderValue, -100, 100.0);
+
+
 
 }
+
 
 int main (){
 
