@@ -215,6 +215,7 @@ int main(void) {
     // Restrict restitution to 0.8
     balls[0].restitution = 0.8f;
     
+    
     // Initialise and get input of total time from the user
     float total_time;
 
@@ -234,9 +235,10 @@ int main(void) {
     // balls[0].x = 0;
     // balls[0].y = (float)screenHeight/3.0f;
     balls[0].x = 30;
-    balls[0].y = 90;
+    balls[0].y = 120;
     
-
+    // save ball information into another object
+    balls[1] = balls[0];
 
 // GetFrameTime() returns the time it took to draw the last frame, in seconds (usually called delta time)
 // Gets raylibs current frame time as a measurement instead of doing it ourself
@@ -267,6 +269,14 @@ int main(void) {
         
         // dt means change in time and were using the raylib frame time instead of a arbitrary value.
         
+        
+
+        // Reset the ball when the key "R" is pressed
+        if (IsKeyPressed(82)) {
+            balls[0] = balls[1];
+        }
+
+
         // BUG huge spike when app starts results in ball skyrocketing
         float dt = GetFrameTime();
         // FIX
