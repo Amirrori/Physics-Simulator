@@ -34,4 +34,4 @@ glad/ -> openGL libraries to import<br><br>
 openglprototype.c -> main openGL file<br><br>
 trig2.frag -> fragment files<br><br>
 trig.frag -> ~~<br><br>
-trig.vert -> vertex file<br><br>
+trig.vert -> vertex file <br><br>

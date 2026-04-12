@@ -333,7 +333,7 @@ int main(void) {
             DrawText(TextFormat("Frame time: %02.02f ms", GetFrameTime()), 10, 30, 20, DARKGRAY);
             DrawText(TextFormat("Time elapsed: %02.02f s", onGoingFrameTime), 10, 50, 20, DARKGRAY);
             // Draw the text above the circle
-            DrawText("FUNC: Using GetFrameTime() as metric for each frame.", 30, 90, 20, RED);
+            DrawText("FUNC: Using GetFrameTime() as metric for each frame.", 10, 90, 20, RED);
             DrawRectangleLines(0, 0, screenWidth, screenHeight, BLACK);
             
             // Misc

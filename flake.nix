@@ -28,6 +28,7 @@
           pkgs.libxi
           pkgs.libxinerama
           pkgs.libxrandr
+          pkgs.raylib
 
           # Uncomment the line below if you want to build Raylib with web support
           # pkgs.emscripten
