@@ -235,8 +235,7 @@ int main(void) {
     // balls[0].x = 0;
     // balls[0].y = (float)screenHeight/3.0f;
     balls[0].x = 30;
-    balls[0].y = 120;
-    
+    balls[0].y = 160;    
     // save ball information into another object
     balls[1] = balls[0];
 
@@ -250,6 +249,8 @@ int main(void) {
     // Set elapsed time
     float onGoingFrameTime = 0.0f;
     
+
+    bool isPaused = false;
     // Main loop to do calculations and draw the ball
     while (!WindowShouldClose() && onGoingFrameTime < total_time) // Detect window close button or ESC key AND check if time is up or not.
     {
@@ -276,56 +277,70 @@ int main(void) {
             balls[0] = balls[1];
         }
 
-
-        // BUG huge spike when app starts results in ball skyrocketing
-        float dt = GetFrameTime();
-        // FIX
-        if (dt > 0.05f) dt = 0.05f;
-
-        // printf("dt = %f\n", dt);
-
-
-        // Does all the position maths with raylib frame times and uses raylib geometry
-        simulation_step(balls, num_balls, dt);
         
-        // if circle hits any of the borders they reset
-        // Left wall
-        if (balls[0].x - 20 < 0)
-        {
-            balls[0].x = 20;
-            balls[0].velocityx *= -balls[0].restitution;
+        if (IsKeyPressed(32)) {
+            isPaused = !isPaused;
         }
+
+        if (!isPaused)
+        {
+
+            // BUG huge spike when app starts results in ball skyrocketing
+            float dt = GetFrameTime();
+            // FIX
+            if (dt > 0.05f) dt = 0.05f;
+
+            // printf("dt = %f\n", dt);
+
+
+            // Does all the position maths with raylib frame times and uses raylib geometry
+            simulation_step(balls, num_balls, dt);
+        
+            // if circle hits any of the borders they reset
+            // Left wall
+            if (balls[0].x - 20 < 0)
+            {
+                balls[0].x = 20;
+                balls[0].velocityx *= -balls[0].restitution;
+            }
 
         // right wall
-        if (balls[0].x +20 > screenWidth)
-        {
-            balls[0].x = screenWidth - 20;
-            balls[0].velocityx *= -balls[0].restitution;
+            if (balls[0].x +20 > screenWidth)
+            {
+                balls[0].x = screenWidth - 20;
+                balls[0].velocityx *= -balls[0].restitution;
 
-        }
+            }
 
         // Bottom wall
-        if (balls[0].y + 20 > screenHeight)
-        {
-            balls[0].y = screenHeight - 20;
-            balls[0].velocityy *= -balls[0].restitution;
+            if (balls[0].y + 20 > screenHeight)
+            {
+                balls[0].y = screenHeight - 20;
+                balls[0].velocityy *= -balls[0].restitution;
 
-            if (balls[0].y < 0.1f)
-                balls[0].velocityy = 0;
-        }
+                if (balls[0].y < 0.1f)
+                    balls[0].velocityy = 0;
+            }
 
         // Top wall
-        if (balls[0].y - 20 < 0)
-        {
-            balls[0].y = 20;
-            balls[0].velocityy *= -balls[0].restitution;
-        }
+            if (balls[0].y - 20 < 0)
+            {
+                balls[0].y = 20;
+                balls[0].velocityy *= -balls[0].restitution;
+            }
 
+
+            // Calculate time
+            // ----------------------------- //
+            float timeNow = GetFrameTime();
+            onGoingFrameTime += timeNow;
+        
+        }
         // Draw
         // ------------------------------------------------ //
         BeginDrawing();
             // Set background colour
-            ClearBackground(GRAY);
+            ClearBackground(DARKGRAY);
             // Draw circle with position x(gets it from ball object), y and set a radius of 20(used 20 because the backend's is too small for raylib). and the colour of RED
             DrawCircle(balls[0].x, balls[0].y, 20, RED);
             
@@ -340,21 +355,27 @@ int main(void) {
             if (currentFps <= 0) fpsText = TextFormat("FPS: unlimited (%i)", GetFPS());
             else fpsText = TextFormat("FPS: %i (target: %i)", GetFPS(), currentFps);
             DrawText(fpsText, 10, 10, 20, DARKGRAY);
-            DrawText(TextFormat("Frame time: %02.02f ms", GetFrameTime()), 10, 30, 20, DARKGRAY);
-            DrawText(TextFormat("Time elapsed: %02.02f s", onGoingFrameTime), 10, 50, 20, DARKGRAY);
+            DrawText(TextFormat("Frame time: %02.02f ms", GetFrameTime()), 10, 30, 20, LIGHTGRAY);
+            DrawText(TextFormat("Time elapsed: %02.02f s", onGoingFrameTime), 10, 50, 20, LIGHTGRAY);
+            
+            DrawText(TextFormat("X Velocity: %2.02fm/s / Y Velocity: %2.02f m/s", balls[0].velocityx, balls[0].velocityy), 10, 90, 20, LIGHTGRAY);
+
             // Draw the text above the circle
-            DrawText("FUNC: Using GetFrameTime() as metric for each frame.", 10, 90, 20, RED);
-            DrawRectangleLines(0, 0, screenWidth, screenHeight, BLACK);
+            DrawText("FUNC: Using GetFrameTime() as a metric for time.", 10, 120, 20, BLUE);
+            DrawRectangleLines(0, 0, screenWidth, screenHeight, LIGHTGRAY);
             
             // Misc
-            DrawText(TextFormat("X: %02.02f, Y: %02.02f", balls[0].x, balls[0].y), 10, 70, 20, DARKGRAY);
-
+            DrawText(TextFormat("X: %02.02f, Y: %02.02f", balls[0].x, balls[0].y), 10, 70, 20, LIGHTGRAY);
+            DrawText("Press SPACE to pause", 250, 30, 20, WHITE);
+            DrawText("Press R to reset ball position", 250, 50, 20, WHITE);
+            if (isPaused) {
+                DrawText("PAUSED", 700, 30, 20, LIGHTGRAY);
+            }
+            
+            else {
+                DrawText("RUNNING", 700, 30, 20, BLUE);
+            }
         
-
-            // Calculate time
-            // ----------------------------- //
-            float timeNow = GetFrameTime();
-            onGoingFrameTime += timeNow;
 
         EndDrawing();
         // ------------------------------------------------ //
